@@ -1,3 +1,25 @@
+INFORMATION
+======
+This repository is a modified version of [srsRAN Project](https://www.srsran.com/) to include srsUE and ZMQ within the docker-based deployment included in the original repository. For that, I have included srsRAN_4G (which cotains a 5G UE prototype) as part of the provided docker-compose file, I have added the required compilation flags within the gitlab ci script and finally, I have included a configuration file for the gNB taken from the documentation ([srsRAN gNB with srsUE](https://docs.srsran.com/projects/project/en/latest/tutorials/source/srsUE/source/index.html#srsran-gnb-with-srsue))
+
+!! IMPORTANT: by default, the docker compose file starts the UE and then, runs a ping command towards the 5G Core.
+
+Steps
+====================
+- Requirements:
+
+  - [Docker](https://docs.docker.com/engine/install/)
+  - [Docker Compose](https://docs.docker.com/compose/install/)
+
+```bash
+# Linux / Windows WSL
+git clone https://github.com/GinesGarcia/srsRAN_Project_zmq_docker.git
+
+cd srsRAN_Project_zmq_docker/docker
+
+docker compose up --build
+```
+
 srsRAN Project
 ==============
 
