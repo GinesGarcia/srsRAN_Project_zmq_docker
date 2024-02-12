@@ -79,6 +79,8 @@ services:
     networks:
       ran:
         ipv4_address: ${GNB_IP:-10.53.1.3}
+      sdr:
+        ipv4_address: 10.54.1.2
       metrics:
         ipv4_address: 172.19.1.3
     # Start GNB container after 5gc is up and running
@@ -86,7 +88,10 @@ services:
       5gc:
         condition: service_healthy
     # Command to run into the final container
-    command: gnb -c /gnb_config.yml amf --addr ${OPEN5GS_IP:-10.53.1.2} --bind_addr ${GNB_IP:-10.53.1.3}
+    # command: gnb -c /gnb_config.yml amf --addr ${OPEN5GS_IP:-10.53.1.2} --bind_addr ${GNB_IP:-10.53.1.3}
+    command: bash -c "sleep 120; gnb -c /gnb_config.yml"
+    # stdin_open: true # docker run -i
+    # tty: true        # docker run -t
 
   metrics-server:
     container_name: metrics_server
@@ -139,9 +144,35 @@ services:
       metrics:
         ipv4_address: 172.19.1.6
 
+  ue:
+    container_name: srsran_ue
+    # Build info
+    image: srsran/ue
+    build:
+      context: srsue
+      args:
+        OS_VERSION: 22.04
+    # privileged mode is requred only for accessing usb devices
+    privileged: true
+    # Extra capabilities always required
+    cap_add:
+      - SYS_NICE
+      - CAP_SYS_PTRACE
+    networks:
+      sdr:
+        ipv4_address: 10.54.1.3
+        # Start GNB container after 5gc is up and running
+    depends_on:
+      - 5gc
+      - gnb
+    # Command to run into the final container
+    command: bash -c "sleep 10; ip netns add ue1; sleep 120; nohup srsue /root/.config/srsran/ue.conf & sleep 10; ip netns exec ue1 ip route add default via 10.45.1.1 dev tun_srsue; ip netns exec ue1 ping -w 9999 10.45.1.1"
+    # stdin_open: true # docker run -i
+    # tty: true        # docker run -t
+
 configs:
   gnb_config.yml:
-    file: ${GNB_CONFIG_PATH:-../configs/gnb_rf_b200_tdd_n78_20mhz.yml} # Path to your desired config file
+    file: ${GNB_CONFIG_PATH:-../configs/gnb_zmq.yml} # Path to your desired config file
 
 volumes:
   gnb-storage:
@@ -154,6 +185,11 @@ networks:
       driver: default
       config:
         - subnet: 10.53.1.0/24
+  sdr:
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.54.1.0/24
   metrics:
     ipam:
       driver: default
